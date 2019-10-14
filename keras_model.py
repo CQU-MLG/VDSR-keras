@@ -29,6 +29,7 @@ array_to_patch
 IMG_SIZE = (41, 41, 1)
 BATCH_SIZE = 64
 EPOCHS = 200
+# 原论文中为多尺度训练，本代码中没有设及
 TRAIN_SCALES = [2, 3, 4]
 VALID_SCALES = [4]
 
@@ -44,10 +45,10 @@ def PSNR(y_true, y_pred):
 
 # make data
 label = read_bmp()
-input = down_up_samples(label)
+inputs = down_up_samples(label)
 # label = np.array(label)
 # input = np.array(input)
-train_input, train_label = array_to_patch(strid=10, inputs=input, label=label, image_size=41)
+train_input, train_label = array_to_patch(strid=10, inputs=inputs, label=label, image_size=41)
 
 input_img = Input(shape=IMG_SIZE)
 
@@ -106,17 +107,13 @@ sgd = SGD(lr=1e-2, momentum=0.9, decay=1e-4, nesterov=False)
 model.compile(adam, loss='mse', metrics=[PSNR, "accuracy"])
 
 model.summary()
-
+# 每个epoch保存一次模型
 filepath = "./checkpoints2/vdsr-{epoch:02d}-{PSNR:.2f}.hdf5"
 checkpoint = ModelCheckpoint(filepath, monitor=PSNR, verbose=1, mode='max')
 callbacks_list = [checkpoint]
-
+# 记录每次训练的loss，PSNR值
 train_log = CSVLogger(filename="train.log")
 model.fit(x=train_input, y=train_label, batch_size=BATCH_SIZE, epochs=EPOCHS, callbacks=callbacks_list, shuffle=True)
 
 print("Done training!!!")
 
-print("Saving the final model ...")
-
-# model.save('vdsr_model_80epoch.h5')  # creates a HDF5 file
-# del model  # deletes the existing model
